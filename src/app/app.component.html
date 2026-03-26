@@ -9,23 +9,32 @@
     <h2 [class.so-back]="philliesBetter" [class.so-over]="!philliesBetter">
       {{ verdict }}
     </h2>
+
     <div class="source-badge" *ngIf="philliesDataSource">
       <span *ngIf="philliesDataSource === 'spring'" class="badge spring">
-        Phillies: Spring Training data — counting stats projected to 162-game pace
+        Phillies: Spring Training — counting stats projected to 162-gm pace
       </span>
       <span *ngIf="philliesDataSource === 'regular'" class="badge regular">
-        Phillies: Regular Season data — counting stats projected to 162-game pace
+        Phillies: Regular Season — counting stats projected to 162-gm pace
       </span>
     </div>
 
     <div class="score-summary" *ngIf="data">
       <span class="score-pill phillies-pill">
-        PHI wins {{ data.category_wins.phillies }}/{{ data.comparisons.length }} categories
+        PHI vs LAD: {{ data.category_wins.phillies }}/{{ data.comparisons.length }} categories
       </span>
       <span class="score-pill dodgers-pill">
-        LAD wins {{ data.category_wins.dodgers }}/{{ data.comparisons.length }} categories
+        LAD vs PHI: {{ data.category_wins.dodgers }}/{{ data.comparisons.length }} categories
+      </span>
+      <span class="score-pill leaders-pill" *ngIf="leaders26Active">
+        PHI vs '26 Leaders: {{ data.category_wins.phillies_vs_26 }}/{{ data.comparisons.length }} categories
       </span>
     </div>
+
+    <p class="verdict-note" *ngIf="data">
+      Decision based on {{ data.category_wins.phi_total }} vs {{ data.category_wins.opp_total }} total wins
+      across {{ leaders26Active ? 'Dodgers \'25 + 2026 MLB leaders' : 'Dodgers \'25' }}
+    </p>
   </div>
 
   <h2 *ngIf="loading" class="loading-text">Fetching live stats...</h2>
@@ -34,11 +43,11 @@
     <p class="error-detail">{{ errorMessage }}</p>
   </div>
 
-  <!-- Stats Comparison Tables -->
+  <!-- Stats Tables -->
   <div class="stats-section" *ngIf="data && !loading">
 
     <div class="stats-group">
-      <h3>Batting <span class="subtitle">(PA-weighted, min 50 PA)</span></h3>
+      <h3>Batting <span class="subtitle">(PA-weighted, min PA threshold)</span></h3>
       <table>
         <thead>
           <tr>
@@ -46,6 +55,7 @@
             <th class="phillies-col">Phillies</th>
             <th class="dodgers-col">Dodgers '25</th>
             <th class="mlb-col">MLB Best '25</th>
+            <th class="mlb-col">MLB Best '26</th>
             <th>Edge</th>
           </tr>
         </thead>
@@ -55,8 +65,12 @@
             <td [class.winner]="row.phillies_better">{{ row.phillies }}</td>
             <td [class.winner]="!row.phillies_better">{{ row.dodgers }}</td>
             <td class="mlb-best">
-              {{ row.mlbBest }}
-              <span class="mlb-team">{{ row.mlbBestTeam }}</span>
+              {{ row.mlbBest25 }}
+              <span class="mlb-team">{{ row.mlbBestTeam25 }}</span>
+            </td>
+            <td class="mlb-best">
+              {{ row.mlbBest26 }}
+              <span class="mlb-team">{{ row.mlbBestTeam26 }}</span>
             </td>
             <td class="edge">
               <span *ngIf="row.phillies_better" class="phi-edge">PHI</span>
@@ -68,13 +82,15 @@
     </div>
 
     <div class="stats-group">
-      <h3>Pitching <span class="subtitle">(IP-weighted, min 10 IP)</span></h3>
+      <h3>Pitching <span class="subtitle">(IP-weighted, min IP threshold)</span></h3>
       <table>
         <thead>
           <tr>
             <th>Stat</th>
             <th class="phillies-col">Phillies</th>
             <th class="dodgers-col">Dodgers '25</th>
+            <th class="mlb-col">MLB Best '25</th>
+            <th class="mlb-col">MLB Best '26</th>
             <th>Edge</th>
           </tr>
         </thead>
@@ -83,6 +99,14 @@
             <td class="stat-label">{{ row.label }}</td>
             <td [class.winner]="row.phillies_better">{{ row.phillies }}</td>
             <td [class.winner]="!row.phillies_better">{{ row.dodgers }}</td>
+            <td class="mlb-best">
+              {{ row.mlbBest25 }}
+              <span class="mlb-team">{{ row.mlbBestTeam25 }}</span>
+            </td>
+            <td class="mlb-best">
+              {{ row.mlbBest26 }}
+              <span class="mlb-team">{{ row.mlbBestTeam26 }}</span>
+            </td>
             <td class="edge">
               <span *ngIf="row.phillies_better" class="phi-edge">PHI</span>
               <span *ngIf="!row.phillies_better" class="lad-edge">LAD</span>

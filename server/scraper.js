@@ -16,14 +16,11 @@ const MIN_GAMES_REGULAR = 5;
 
 async function fetchGroup(teamId, season, group) {
   const base = `${MLB_API}/stats?stats=season&group=${group}&season=${season}&sportId=1&teamId=${teamId}&playerPool=ALL&limit=100`;
-
   const rJson = await fetch(`${base}&gameType=R`).then(r => r.json());
   const rSplits = rJson.stats?.[0]?.splits || [];
-
   if (rSplits.some(s => (s.stat?.gamesPlayed || 0) >= MIN_GAMES_REGULAR)) {
     return { source: 'regular', splits: rSplits };
   }
-
   const sJson = await fetch(`${base}&gameType=S`).then(r => r.json());
   return { source: 'spring', splits: sJson.stats?.[0]?.splits || [] };
 }
@@ -40,19 +37,21 @@ async function fetchTeamStats(teamId, season) {
 }
 
 // ---------------------------------------------------------------------------
-// Fetch MLB-wide team stats to find the best team for each category
+// Fetch MLB-wide team stats — find best team for each stat
 // ---------------------------------------------------------------------------
 
-async function fetchMLBLeaders() {
+async function fetchMLBLeaders(season) {
   const [hJson, pJson] = await Promise.all([
-    fetch(`${MLB_API}/teams/stats?season=2025&group=hitting&stats=season&sportId=1`).then(r => r.json()),
-    fetch(`${MLB_API}/teams/stats?season=2025&group=pitching&stats=season&sportId=1`).then(r => r.json()),
+    fetch(`${MLB_API}/teams/stats?season=${season}&group=hitting&stats=season&sportId=1`).then(r => r.json()),
+    fetch(`${MLB_API}/teams/stats?season=${season}&group=pitching&stats=season&sportId=1`).then(r => r.json()),
   ]);
 
   const hSplits = hJson.stats?.[0]?.splits || [];
   const pSplits = pJson.stats?.[0]?.splits || [];
 
-  // Short team name — last word of full name (e.g. "New York Yankees" → "Yankees")
+  // Require at least 10 teams with 3+ games for the data to be meaningful
+  const meaningful = hSplits.filter(s => (s.stat?.gamesPlayed || 0) >= 3).length >= 10;
+
   const shortName = name => name?.split(' ').pop() ?? name;
 
   const bestFrom = (splits, field, higherIsBetter) => {
@@ -65,23 +64,24 @@ async function fetchMLBLeaders() {
   };
 
   return {
+    meaningful,
     batting: {
-      OPS: bestFrom(hSplits, 'ops',          true),
-      OBP: bestFrom(hSplits, 'obp',          true),
-      SLG: bestFrom(hSplits, 'slg',          true),
-      BA:  bestFrom(hSplits, 'avg',          true),
-      HR:  bestFrom(hSplits, 'homeRuns',     true),
-      BB:  bestFrom(hSplits, 'baseOnBalls',  true),
-      SO:  bestFrom(hSplits, 'strikeOuts',   false),
-      SB:  bestFrom(hSplits, 'stolenBases',  true),
+      OPS: bestFrom(hSplits, 'ops',         true),
+      OBP: bestFrom(hSplits, 'obp',         true),
+      SLG: bestFrom(hSplits, 'slg',         true),
+      BA:  bestFrom(hSplits, 'avg',         true),
+      HR:  bestFrom(hSplits, 'homeRuns',    true),
+      BB:  bestFrom(hSplits, 'baseOnBalls', true),
+      SO:  bestFrom(hSplits, 'strikeOuts',  false),
+      SB:  bestFrom(hSplits, 'stolenBases', true),
     },
     pitching: {
-      ERA:  bestFrom(pSplits, 'era',                 false),
-      WHIP: bestFrom(pSplits, 'whip',                false),
-      SO9:  bestFrom(pSplits, 'strikeoutsPer9Inn',   true),
-      BB9:  bestFrom(pSplits, 'walksPer9Inn',        false),
-      HR9:  bestFrom(pSplits, 'homeRunsPer9',        false),
-      SOBB: bestFrom(pSplits, 'strikeoutWalkRatio',  true),
+      ERA:  bestFrom(pSplits, 'era',                false),
+      WHIP: bestFrom(pSplits, 'whip',               false),
+      SO9:  bestFrom(pSplits, 'strikeoutsPer9Inn',  true),
+      BB9:  bestFrom(pSplits, 'walksPer9Inn',       false),
+      HR9:  bestFrom(pSplits, 'homeRunsPer9',       false),
+      SOBB: bestFrom(pSplits, 'strikeoutWalkRatio', true),
     },
   };
 }
@@ -108,10 +108,8 @@ function parseBatter(split, source) {
   const pa = toInt(s.plateAppearances) || 0;
   const gp = toInt(s.gamesPlayed) || 0;
   if (pa < (source === 'spring' ? MIN_PA_SPRING : MIN_PA_REGULAR)) return null;
-
   return {
-    name: split.player?.fullName || '?',
-    PA: pa, GP: gp,
+    name: split.player?.fullName || '?', PA: pa, GP: gp,
     BA: toFloat(s.avg), OBP: toFloat(s.obp), SLG: toFloat(s.slg), OPS: toFloat(s.ops),
     HR: toPace(toInt(s.homeRuns)    || 0, gp),
     BB: toPace(toInt(s.baseOnBalls) || 0, gp),
@@ -124,16 +122,14 @@ function parsePitcher(split, source) {
   const s  = split.stat || {};
   const ip = parseIP(s.inningsPitched);
   if (ip < (source === 'spring' ? MIN_IP_SPRING : MIN_IP_REGULAR)) return null;
-
   return {
-    name: split.player?.fullName || '?',
-    IP:   ip,
-    ERA:  toFloat(s.era)                || null,
-    WHIP: toFloat(s.whip)               || null,
-    SO9:  toFloat(s.strikeoutsPer9Inn)  || null,
-    BB9:  toFloat(s.walksPer9Inn)       || null,
-    HR9:  toFloat(s.homeRunsPer9)       || null,
-    SOBB: toFloat(s.strikeoutWalkRatio) || null,
+    name: split.player?.fullName || '?', IP: ip,
+    ERA:  toFloat(s.era),
+    WHIP: toFloat(s.whip),
+    SO9:  toFloat(s.strikeoutsPer9Inn),
+    BB9:  toFloat(s.walksPer9Inn),
+    HR9:  toFloat(s.homeRunsPer9),
+    SOBB: toFloat(s.strikeoutWalkRatio),
   };
 }
 
@@ -153,7 +149,7 @@ function sumStat(players, k) {
 }
 
 // ---------------------------------------------------------------------------
-// Team summary
+// Team score composites
 // ---------------------------------------------------------------------------
 
 function offenseScore(batters) {
@@ -187,8 +183,8 @@ function buildTeamSummary(rawBatting, rawPitching, battingSource, pitchingSource
     batting: {
       OPS: weightedAvg(batters, 'OPS', 'PA'), OBP: weightedAvg(batters, 'OBP', 'PA'),
       SLG: weightedAvg(batters, 'SLG', 'PA'), BA:  weightedAvg(batters, 'BA',  'PA'),
-      HR:  sumStat(batters, 'HR'), BB: sumStat(batters, 'BB'),
-      SO:  sumStat(batters, 'SO'), SB: sumStat(batters, 'SB'),
+      HR: sumStat(batters, 'HR'), BB: sumStat(batters, 'BB'),
+      SO: sumStat(batters, 'SO'), SB: sumStat(batters, 'SB'),
     },
     pitching: {
       ERA:  weightedAvg(pitchers, 'ERA',  'IP'), WHIP: weightedAvg(pitchers, 'WHIP', 'IP'),
@@ -203,22 +199,28 @@ function buildTeamSummary(rawBatting, rawPitching, battingSource, pitchingSource
 }
 
 // ---------------------------------------------------------------------------
-// Category comparison — now includes MLB leader for each stat
+// Category comparison — PHI vs LAD, PHI vs MLB Best '25, PHI vs MLB Best '26
 // ---------------------------------------------------------------------------
 
-function compareStats(phillies, dodgers, leaders) {
+function compareStats(phillies, dodgers, leaders25, leaders26) {
   const rows = [];
 
-  const add = (label, phiVal, ladVal, mlbLeader, higherIsBetter, fmt) => {
+  const add = (label, phiVal, ladVal, best25, best26, higherIsBetter, fmt) => {
     if (phiVal == null || ladVal == null) return;
     const f = fmt || (v => v?.toFixed(3) ?? 'N/A');
+    const better26 = best26?.value != null
+      ? (higherIsBetter ? phiVal > best26.value : phiVal < best26.value)
+      : null;
     rows.push({
       label,
-      phillies:        f(phiVal),
-      dodgers:         f(ladVal),
-      mlbBest:         mlbLeader ? f(mlbLeader.value) : 'N/A',
-      mlbBestTeam:     mlbLeader?.team ?? '',
-      phillies_better: higherIsBetter ? phiVal > ladVal : phiVal < ladVal,
+      phillies:              f(phiVal),
+      dodgers:               f(ladVal),
+      mlbBest25:             best25 ? f(best25.value) : 'N/A',
+      mlbBestTeam25:         best25?.team ?? '',
+      mlbBest26:             best26 ? f(best26.value) : 'TBD',
+      mlbBestTeam26:         best26?.team ?? '',
+      phillies_better:       higherIsBetter ? phiVal > ladVal : phiVal < ladVal,
+      phillies_better_26:    better26,
     });
   };
 
@@ -226,25 +228,66 @@ function compareStats(phillies, dodgers, leaders) {
   const fmt1 = v => v?.toFixed(1)  ?? 'N/A';
   const fmtI = v => v != null ? Math.round(v).toString() : 'N/A';
 
-  const b  = leaders?.batting  || {};
-  const p  = leaders?.pitching || {};
+  const b25 = leaders25?.batting  || {};
+  const p25 = leaders25?.pitching || {};
+  const b26 = leaders26?.batting  || {};
+  const p26 = leaders26?.pitching || {};
 
-  add('OPS',              phillies.batting.OPS,  dodgers.batting.OPS,  b.OPS,  true,  fmt3);
-  add('OBP',              phillies.batting.OBP,  dodgers.batting.OBP,  b.OBP,  true,  fmt3);
-  add('SLG',              phillies.batting.SLG,  dodgers.batting.SLG,  b.SLG,  true,  fmt3);
-  add('Batting Avg',      phillies.batting.BA,   dodgers.batting.BA,   b.BA,   true,  fmt3);
-  add('HR (162-gm pace)', phillies.batting.HR,   dodgers.batting.HR,   b.HR,   true,  fmtI);
-  add('BB (162-gm pace)', phillies.batting.BB,   dodgers.batting.BB,   b.BB,   true,  fmtI);
-  add('SO (162-gm pace)', phillies.batting.SO,   dodgers.batting.SO,   b.SO,   false, fmtI);
-  add('SB (162-gm pace)', phillies.batting.SB,   dodgers.batting.SB,   b.SB,   true,  fmtI);
-  add('ERA',              phillies.pitching.ERA,  dodgers.pitching.ERA,  p.ERA,  false, fmt3);
-  add('WHIP',             phillies.pitching.WHIP, dodgers.pitching.WHIP, p.WHIP, false, fmt3);
-  add('SO/9',             phillies.pitching.SO9,  dodgers.pitching.SO9,  p.SO9,  true,  fmt1);
-  add('BB/9',             phillies.pitching.BB9,  dodgers.pitching.BB9,  p.BB9,  false, fmt1);
-  add('HR/9',             phillies.pitching.HR9,  dodgers.pitching.HR9,  p.HR9,  false, fmt1);
-  add('SO/BB',            phillies.pitching.SOBB, dodgers.pitching.SOBB, p.SOBB, true,  fmt3);
+  add('OPS',              phillies.batting.OPS,  dodgers.batting.OPS,  b25.OPS,  b26.OPS,  true,  fmt3);
+  add('OBP',              phillies.batting.OBP,  dodgers.batting.OBP,  b25.OBP,  b26.OBP,  true,  fmt3);
+  add('SLG',              phillies.batting.SLG,  dodgers.batting.SLG,  b25.SLG,  b26.SLG,  true,  fmt3);
+  add('Batting Avg',      phillies.batting.BA,   dodgers.batting.BA,   b25.BA,   b26.BA,   true,  fmt3);
+  add('HR (162-gm pace)', phillies.batting.HR,   dodgers.batting.HR,   b25.HR,   b26.HR,   true,  fmtI);
+  add('BB (162-gm pace)', phillies.batting.BB,   dodgers.batting.BB,   b25.BB,   b26.BB,   true,  fmtI);
+  add('SO (162-gm pace)', phillies.batting.SO,   dodgers.batting.SO,   b25.SO,   b26.SO,   false, fmtI);
+  add('SB (162-gm pace)', phillies.batting.SB,   dodgers.batting.SB,   b25.SB,   b26.SB,   true,  fmtI);
+  add('ERA',              phillies.pitching.ERA,  dodgers.pitching.ERA,  p25.ERA,  p26.ERA,  false, fmt3);
+  add('WHIP',             phillies.pitching.WHIP, dodgers.pitching.WHIP, p25.WHIP, p26.WHIP, false, fmt3);
+  add('SO/9',             phillies.pitching.SO9,  dodgers.pitching.SO9,  p25.SO9,  p26.SO9,  true,  fmt1);
+  add('BB/9',             phillies.pitching.BB9,  dodgers.pitching.BB9,  p25.BB9,  p26.BB9,  false, fmt1);
+  add('HR/9',             phillies.pitching.HR9,  dodgers.pitching.HR9,  p25.HR9,  p26.HR9,  false, fmt1);
+  add('SO/BB',            phillies.pitching.SOBB, dodgers.pitching.SOBB, p25.SOBB, p26.SOBB, true,  fmt3);
 
   return rows;
+}
+
+// ---------------------------------------------------------------------------
+// Verdict — PHI vs LAD + PHI vs 2026 leader (when data is meaningful)
+// ---------------------------------------------------------------------------
+
+function calcVerdict(comparisons, phiComposite, ladComposite, leaders26Meaningful) {
+  // PHI vs LAD category wins
+  const phiVsLad = comparisons.filter(c => c.phillies_better).length;
+  const ladVsPhi = comparisons.filter(c => !c.phillies_better).length;
+
+  // PHI vs 2026 leader category wins (only counted when season has enough data)
+  const phiVs26 = leaders26Meaningful
+    ? comparisons.filter(c => c.phillies_better_26 === true).length
+    : 0;
+  const leadVsPhi26 = leaders26Meaningful
+    ? comparisons.filter(c => c.phillies_better_26 === false).length
+    : 0;
+
+  // Total wins across both benchmarks
+  const phiTotal = phiVsLad + phiVs26;
+  const oppTotal = ladVsPhi + leadVsPhi26;
+
+  // Primary tiebreaker: composite score vs Dodgers
+  const philliesBetter = phiTotal !== oppTotal
+    ? phiTotal > oppTotal
+    : phiComposite > ladComposite;
+
+  return {
+    philliesBetter,
+    category_wins: {
+      phillies:        phiVsLad,
+      dodgers:         ladVsPhi,
+      phillies_vs_26:  phiVs26,
+      leaders_vs_phi:  leadVsPhi26,
+      phi_total:       phiTotal,
+      opp_total:       oppTotal,
+    },
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -254,33 +297,36 @@ function compareStats(phillies, dodgers, leaders) {
 async function scrapeAndCompare() {
   console.log(`[${new Date().toISOString()}] Fetching MLB API stats...`);
 
-  const [philliesRaw, dodgersRaw, leaders] = await Promise.all([
+  const [philliesRaw, dodgersRaw, leaders25, leaders26] = await Promise.all([
     fetchTeamStats(PHILLIES_ID, 2026),
     fetchTeamStats(DODGERS_ID,  2025),
-    fetchMLBLeaders(),
+    fetchMLBLeaders(2025),
+    fetchMLBLeaders(2026),
   ]);
 
   const phillies = buildTeamSummary(philliesRaw.batting, philliesRaw.pitching, philliesRaw.battingSource, philliesRaw.pitchingSource);
   const dodgers  = buildTeamSummary(dodgersRaw.batting,  dodgersRaw.pitching,  dodgersRaw.battingSource,  dodgersRaw.pitchingSource);
 
-  const comparisons = compareStats(phillies, dodgers, leaders);
+  const comparisons = compareStats(phillies, dodgers, leaders25, leaders26);
 
-  const phiTotal   = (phillies.offenseScore || 0) + (phillies.pitchingScore || 0);
-  const ladTotal   = (dodgers.offenseScore  || 0) + (dodgers.pitchingScore  || 0);
-  const phiCatWins = comparisons.filter(c => c.phillies_better).length;
-  const ladCatWins = comparisons.filter(c => !c.phillies_better).length;
-  const philliesBetter = phiTotal !== ladTotal ? phiTotal > ladTotal : phiCatWins >= ladCatWins;
+  const phiComposite = (phillies.offenseScore || 0) + (phillies.pitchingScore || 0);
+  const ladComposite = (dodgers.offenseScore  || 0) + (dodgers.pitchingScore  || 0);
+
+  const { philliesBetter, category_wins } = calcVerdict(
+    comparisons, phiComposite, ladComposite, leaders26.meaningful
+  );
 
   return {
     last_updated:         new Date().toISOString(),
     verdict:              philliesBetter ? "We're so back" : "It's so over",
     phillies_better:      philliesBetter,
     phillies_data_source: philliesRaw.battingSource,
+    leaders_26_active:    leaders26.meaningful,
     scores: {
-      phillies: { offense: phillies.offenseScore, pitching: phillies.pitchingScore, total: phiTotal },
-      dodgers:  { offense: dodgers.offenseScore,  pitching: dodgers.pitchingScore,  total: ladTotal },
+      phillies: { offense: phillies.offenseScore, pitching: phillies.pitchingScore, total: phiComposite },
+      dodgers:  { offense: dodgers.offenseScore,  pitching: dodgers.pitchingScore,  total: ladComposite },
     },
-    category_wins: { phillies: phiCatWins, dodgers: ladCatWins },
+    category_wins,
     comparisons,
     team_stats: { phillies, dodgers },
   };

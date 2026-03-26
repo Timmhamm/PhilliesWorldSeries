@@ -7,9 +7,12 @@ interface Comparison {
   label: string;
   phillies: string;
   dodgers: string;
-  mlbBest: string;
-  mlbBestTeam: string;
+  mlbBest25: string;
+  mlbBestTeam25: string;
+  mlbBest26: string;
+  mlbBestTeam26: string;
   phillies_better: boolean;
+  phillies_better_26: boolean | null;
 }
 
 interface TeamScores {
@@ -23,6 +26,7 @@ interface StatsResult {
   verdict: string;
   phillies_better: boolean;
   phillies_data_source: 'spring' | 'regular';
+  leaders_26_active: boolean;
   scores: {
     phillies: TeamScores;
     dodgers: TeamScores;
@@ -30,6 +34,10 @@ interface StatsResult {
   category_wins: {
     phillies: number;
     dodgers: number;
+    phillies_vs_26: number;
+    leaders_vs_phi: number;
+    phi_total: number;
+    opp_total: number;
   };
   comparisons: Comparison[];
 }
@@ -45,13 +53,13 @@ export class AppComponent implements OnInit {
   lastUpdated: string | null = null;
   loading = true;
   error = false;
+  errorMessage = '';
   data: StatsResult | null = null;
   philliesDataSource: 'spring' | 'regular' | null = null;
+  leaders26Active = false;
 
   battingComparisons: Comparison[] = [];
   pitchingComparisons: Comparison[] = [];
-
-  errorMessage = '';
 
   constructor(private http: HttpClient) {}
 
@@ -63,6 +71,7 @@ export class AppComponent implements OnInit {
         this.philliesBetter = result.phillies_better;
         this.lastUpdated = result.last_updated;
         this.philliesDataSource = result.phillies_data_source;
+        this.leaders26Active = result.leaders_26_active;
         this.battingComparisons  = result.comparisons.slice(0, 8);
         this.pitchingComparisons = result.comparisons.slice(8);
         this.loading = false;
@@ -71,7 +80,7 @@ export class AppComponent implements OnInit {
         this.loading = false;
         this.error = true;
         if (err?.name === 'TimeoutError') {
-          this.errorMessage = 'Stats request timed out — the scraper may still be warming up. Try refreshing.';
+          this.errorMessage = 'Stats request timed out. Try refreshing.';
         } else if (err?.error?.error) {
           this.errorMessage = err.error.error;
         } else {
