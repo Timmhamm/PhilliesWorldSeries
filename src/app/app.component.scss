@@ -57,6 +57,22 @@ $gold:  #f5c518;
   }
 }
 
+// Data source badge
+.source-badge {
+  margin-bottom: 0.75rem;
+
+  .badge {
+    display: inline-block;
+    padding: 0.3rem 0.9rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-family: sans-serif;
+
+    &.spring  { background: rgba(255,200,0,0.2); color: $gold; border: 1px solid rgba(255,200,0,0.4); }
+    &.regular { background: rgba(255,255,255,0.1); color: $white; border: 1px solid rgba(255,255,255,0.3); }
+  }
+}
+
 // Category win pills
 .score-summary {
   display: flex;

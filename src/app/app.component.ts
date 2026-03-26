@@ -20,6 +20,7 @@ interface StatsResult {
   last_updated: string;
   verdict: string;
   phillies_better: boolean;
+  phillies_data_source: 'spring' | 'regular';
   scores: {
     phillies: TeamScores;
     dodgers: TeamScores;
@@ -43,6 +44,7 @@ export class AppComponent implements OnInit {
   loading = true;
   error = false;
   data: StatsResult | null = null;
+  philliesDataSource: 'spring' | 'regular' | null = null;
 
   battingComparisons: Comparison[] = [];
   pitchingComparisons: Comparison[] = [];
@@ -58,6 +60,7 @@ export class AppComponent implements OnInit {
         this.verdict = result.verdict;
         this.philliesBetter = result.phillies_better;
         this.lastUpdated = result.last_updated;
+        this.philliesDataSource = result.phillies_data_source;
         this.battingComparisons  = result.comparisons.slice(0, 8);
         this.pitchingComparisons = result.comparisons.slice(8);
         this.loading = false;

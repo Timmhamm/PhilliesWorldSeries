@@ -9,6 +9,15 @@
     <h2 [class.so-back]="philliesBetter" [class.so-over]="!philliesBetter">
       {{ verdict }}
     </h2>
+    <div class="source-badge" *ngIf="philliesDataSource">
+      <span *ngIf="philliesDataSource === 'spring'" class="badge spring">
+        Phillies: Spring Training data — counting stats projected to 162-game pace
+      </span>
+      <span *ngIf="philliesDataSource === 'regular'" class="badge regular">
+        Phillies: Regular Season data — counting stats projected to 162-game pace
+      </span>
+    </div>
+
     <div class="score-summary" *ngIf="data">
       <span class="score-pill phillies-pill">
         PHI wins {{ data.category_wins.phillies }}/{{ data.comparisons.length }} categories
