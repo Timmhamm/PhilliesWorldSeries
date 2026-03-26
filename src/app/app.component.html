@@ -67,7 +67,7 @@
               <span class="mlb-team">{{ row.mlbBestTeam26 }}</span>
             </td>
             <td class="edge">
-              <span [class]="'edge-' + row.edge.replace(' ', '').replace(\"'\", '')">{{ row.edge }}</span>
+              <span [class]="edgeClass(row.edge)">{{ row.edge }}</span>
             </td>
           </tr>
         </tbody>
@@ -101,7 +101,7 @@
               <span class="mlb-team">{{ row.mlbBestTeam26 }}</span>
             </td>
             <td class="edge">
-              <span [class]="'edge-' + row.edge.replace(' ', '').replace(\"'\", '')">{{ row.edge }}</span>
+              <span [class]="edgeClass(row.edge)">{{ row.edge }}</span>
             </td>
           </tr>
         </tbody>

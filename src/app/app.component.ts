@@ -67,6 +67,10 @@ export class AppComponent implements OnInit {
   battingComparisons: Comparison[] = [];
   pitchingComparisons: Comparison[] = [];
 
+  edgeClass(edge: string): string {
+    return 'edge-' + edge.replace(/[\s']/g, '');
+  }
+
   constructor(private http: HttpClient) {}
 
   ngOnInit() {
