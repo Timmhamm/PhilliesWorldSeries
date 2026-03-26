@@ -1,5 +1,6 @@
 const { scrapeAndCompare } = require('../../server/scraper');
 
+// v2 — counting stats projected to 162-game pace
 exports.handler = async () => {
   try {
     const result = await scrapeAndCompare();
