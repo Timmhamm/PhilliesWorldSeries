@@ -1,0 +1,36 @@
+{
+  "team": "Los Angeles Dodgers",
+  "season": 2025,
+  "source": "https://www.baseball-reference.com/teams/LAD/2025.shtml",
+  "record": {
+    "wins": 93,
+    "losses": 69,
+    "division_finish": "1st place, NL West",
+    "pythagorean_wl": "95-67"
+  },
+  "run_statistics": {
+    "runs_scored": 825,
+    "runs_allowed": 683,
+    "run_differential": 142
+  },
+  "postseason": {
+    "result": "World Series Champions",
+    "world_series": "Won 4-3 over Toronto Blue Jays",
+    "nlcs": "Won 4-0 over Milwaukee Brewers",
+    "nlds": "Won 3-1 over Philadelphia Phillies",
+    "wildcard": "Won 2-0 over Cincinnati Reds"
+  },
+  "park_factors": {
+    "multi_year_batting": 99,
+    "multi_year_pitching": 98,
+    "one_year_batting": 102,
+    "one_year_pitching": 100
+  },
+  "management": {
+    "manager": "Dave Roberts",
+    "president": "Andrew Friedman",
+    "gm": "Brandon Gomes",
+    "ballpark": "Dodger Stadium"
+  },
+  "note": "Detailed batting/pitching tables not available via fetch — Baseball Reference renders stats tables via JavaScript. Visit source URL for full player stats."
+}

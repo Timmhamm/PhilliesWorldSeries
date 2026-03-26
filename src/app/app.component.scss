@@ -1,0 +1,207 @@
+$red:   #e81828;
+$navy:  #002d62;
+$white: #ffffff;
+$gold:  #f5c518;
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  padding: 2rem 1rem 3rem;
+  background-color: $red;
+  color: $white;
+  font-family: 'Georgia', serif;
+  text-align: center;
+
+  h1 {
+    font-size: 2.6rem;
+    margin-bottom: 1.5rem;
+    text-shadow: 2px 2px 6px rgba(0,0,0,0.4);
+  }
+
+  img {
+    width: 220px;
+    height: auto;
+    margin-bottom: 1.5rem;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
+  }
+}
+
+// Verdict
+.verdict-block {
+  margin-bottom: 2rem;
+
+  h2 {
+    font-size: 2.4rem;
+    text-shadow: 2px 2px 6px rgba(0,0,0,0.4);
+
+    &.so-back  { color: $gold; }
+    &.so-over  { color: rgba(255,255,255,0.75); }
+  }
+}
+
+.loading-text, .error-text {
+  font-size: 1.4rem;
+  color: rgba(255,255,255,0.7);
+  margin-bottom: 2rem;
+}
+
+// Category win pills
+.score-summary {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 0.75rem;
+}
+
+.score-pill {
+  padding: 0.3rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-family: sans-serif;
+  font-weight: 600;
+
+  &.phillies-pill { background: $navy; color: $white; }
+  &.dodgers-pill  { background: rgba(0,0,0,0.25); color: $white; }
+}
+
+// Stats tables
+.stats-section {
+  width: 100%;
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.stats-group {
+  background: rgba(0,0,0,0.2);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+
+  h3 {
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 0 0 1rem;
+    color: $white;
+
+    .subtitle {
+      font-size: 0.72rem;
+      font-weight: normal;
+      text-transform: none;
+      letter-spacing: 0;
+      color: rgba(255,255,255,0.55);
+    }
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+
+    thead tr {
+      border-bottom: 1px solid rgba(255,255,255,0.2);
+
+      th {
+        padding: 0.4rem 0.6rem;
+        color: rgba(255,255,255,0.65);
+        font-weight: normal;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+    }
+
+    tbody tr {
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+
+      &:last-child { border-bottom: none; }
+
+      td {
+        padding: 0.5rem 0.6rem;
+        color: rgba(255,255,255,0.8);
+
+        &.stat-label { text-align: left; color: $white; font-family: 'Georgia', serif; }
+        &.winner     { color: $gold; font-weight: bold; }
+      }
+    }
+
+    .phillies-col, .dodgers-col { text-align: center; }
+  }
+}
+
+.edge {
+  text-align: center;
+
+  .phi-edge {
+    background: $navy;
+    color: $white;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    font-family: sans-serif;
+  }
+
+  .lad-edge {
+    background: rgba(0,90,200,0.5);
+    color: $white;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    font-family: sans-serif;
+  }
+}
+
+// Composite scores
+.composite-scores {
+  background: rgba(0,0,0,0.2);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+
+  h3 {
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 0 0 1rem;
+  }
+}
+
+.score-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.score-card {
+  text-align: center;
+
+  .score-team  { font-size: 0.85rem; color: rgba(255,255,255,0.65); margin-bottom: 0.25rem; }
+  .score-value { font-size: 1.8rem; font-family: 'Courier New', monospace; font-weight: bold; color: $gold; }
+}
+
+.score-vs {
+  font-size: 1rem;
+  color: rgba(255,255,255,0.4);
+}
+
+.score-note {
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.45);
+  font-family: sans-serif;
+  line-height: 1.6;
+}
+
+.updated {
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.45);
+  margin-top: 2rem;
+  font-family: sans-serif;
+}

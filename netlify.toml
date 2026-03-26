@@ -1,0 +1,22 @@
+[build]
+  command   = "npm run build"
+  publish   = "dist/phillies-world-series-meter"
+  functions = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION                    = "18"
+  PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "true"
+
+[functions]
+  directory = "netlify/functions"
+
+[[redirects]]
+  from   = "/api/stats"
+  to     = "/.netlify/functions/stats"
+  status = 200
+  force  = true
+
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200
