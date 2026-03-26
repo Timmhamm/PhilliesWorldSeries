@@ -22,6 +22,15 @@ interface TeamScores {
   total: number;
 }
 
+interface WsScore {
+  raw: number;
+  pitching: number;
+  offense: number;
+  confidence: number;
+  adjusted: number;
+  label: string;
+}
+
 interface StatsResult {
   last_updated: string;
   verdict: string;
@@ -31,6 +40,10 @@ interface StatsResult {
   scores: {
     phillies: TeamScores;
     dodgers: TeamScores;
+  };
+  ws_scores: {
+    phillies: WsScore;
+    dodgers: WsScore;
   };
   total_categories: number;
   category_wins: {

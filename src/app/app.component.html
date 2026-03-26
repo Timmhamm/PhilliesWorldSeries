@@ -12,11 +12,35 @@
 
     <div class="source-badge" *ngIf="philliesDataSource">
       <span *ngIf="philliesDataSource === 'spring'" class="badge spring">
-        Phillies: Spring Training — counting stats projected to 162-gm pace
+        Spring Training — early-season projection ({{ data?.ws_scores?.phillies?.confidence | percent }} confidence)
       </span>
       <span *ngIf="philliesDataSource === 'regular'" class="badge regular">
-        Phillies: Regular Season — counting stats projected to 162-gm pace
+        Regular Season — {{ data?.ws_scores?.phillies?.confidence | percent }} confidence
       </span>
+    </div>
+
+    <!-- WS Prediction Scores -->
+    <div class="ws-score-block" *ngIf="data?.ws_scores">
+      <div class="ws-score-row">
+        <div class="ws-score-card" [class.ws-winner]="philliesBetter">
+          <div class="ws-team">Phillies '26</div>
+          <div class="ws-pts">{{ data!.ws_scores.phillies.raw }}<span class="ws-max">/85</span></div>
+          <div class="ws-label">{{ data!.ws_scores.phillies.label }}</div>
+          <div class="ws-breakdown">
+            P: {{ data!.ws_scores.phillies.pitching }}/50 &nbsp;|&nbsp; O: {{ data!.ws_scores.phillies.offense }}/35
+          </div>
+        </div>
+        <div class="ws-vs">vs</div>
+        <div class="ws-score-card" [class.ws-winner]="!philliesBetter">
+          <div class="ws-team">Dodgers '25</div>
+          <div class="ws-pts">{{ data!.ws_scores.dodgers.raw }}<span class="ws-max">/85</span></div>
+          <div class="ws-label">{{ data!.ws_scores.dodgers.label }}</div>
+          <div class="ws-breakdown">
+            P: {{ data!.ws_scores.dodgers.pitching }}/50 &nbsp;|&nbsp; O: {{ data!.ws_scores.dodgers.offense }}/35
+          </div>
+        </div>
+      </div>
+      <p class="ws-note">WS score: ERA (18) + WHIP (14) + SO/BB (10) + BB/9 (5) + HR/9 (3) &nbsp;|&nbsp; OPS (15) + OBP (12) + SLG (5) + BA (3)</p>
     </div>
 
     <div class="score-summary" *ngIf="data">
@@ -27,7 +51,7 @@
     </div>
 
     <p class="verdict-note" *ngIf="data">
-      "We're so back" if PHI leads all teams in category wins
+      Category edge wins across all 4 benchmarks
     </p>
   </div>
 

@@ -283,32 +283,140 @@ function compareStats(phillies, dodgers, leaders25, leaders26) {
 }
 
 // ---------------------------------------------------------------------------
-// Verdict — PHI vs LAD + PHI vs 2026 leader (when data is meaningful)
+// World Series Prediction Model
+// Based on historical WS stat correlations — pitching (50pts) + offense (35pts)
 // ---------------------------------------------------------------------------
 
-function calcVerdict(comparisons, phiComposite, ladComposite) {
-  // Each category has one winner — count how many each entity wins outright
+function pitchingWsScore(p) {
+  if (!p) return 0;
+  let score = 0;
+
+  // ERA: max 18pts (lower is better)
+  if      (p.ERA <= 3.20) score += 18;
+  else if (p.ERA <= 3.50) score += 16;
+  else if (p.ERA <= 3.80) score += 14;
+  else if (p.ERA <= 4.00) score += 11;
+  else if (p.ERA <= 4.50) score += 6;
+  else if (p.ERA <= 5.00) score += 2;
+
+  // WHIP: max 14pts (lower is better)
+  if      (p.WHIP <= 1.05) score += 14;
+  else if (p.WHIP <= 1.10) score += 12;
+  else if (p.WHIP <= 1.18) score += 10;
+  else if (p.WHIP <= 1.25) score += 7;
+  else if (p.WHIP <= 1.35) score += 4;
+  else if (p.WHIP <= 1.45) score += 1;
+
+  // SO/BB: max 10pts (higher is better)
+  if      (p.SOBB >= 4.0) score += 10;
+  else if (p.SOBB >= 3.5) score += 8;
+  else if (p.SOBB >= 3.0) score += 6;
+  else if (p.SOBB >= 2.5) score += 4;
+  else if (p.SOBB >= 2.0) score += 2;
+
+  // BB/9: max 5pts (lower is better)
+  if      (p.BB9 <= 2.5) score += 5;
+  else if (p.BB9 <= 3.0) score += 4;
+  else if (p.BB9 <= 3.5) score += 3;
+  else if (p.BB9 <= 4.0) score += 1;
+
+  // HR/9: max 3pts (lower is better)
+  if      (p.HR9 <= 0.9) score += 3;
+  else if (p.HR9 <= 1.1) score += 2;
+  else if (p.HR9 <= 1.3) score += 1;
+
+  return score; // max 50
+}
+
+function offenseWsScore(b) {
+  if (!b) return 0;
+  let score = 0;
+
+  // OPS: max 15pts (higher is better)
+  if      (b.OPS >= 0.820) score += 15;
+  else if (b.OPS >= 0.800) score += 13;
+  else if (b.OPS >= 0.780) score += 11;
+  else if (b.OPS >= 0.760) score += 8;
+  else if (b.OPS >= 0.740) score += 5;
+  else if (b.OPS >= 0.720) score += 2;
+
+  // OBP: max 12pts (higher is better)
+  if      (b.OBP >= 0.355) score += 12;
+  else if (b.OBP >= 0.345) score += 10;
+  else if (b.OBP >= 0.330) score += 8;
+  else if (b.OBP >= 0.320) score += 5;
+  else if (b.OBP >= 0.310) score += 3;
+  else if (b.OBP >= 0.300) score += 1;
+
+  // SLG: max 5pts (higher is better)
+  if      (b.SLG >= 0.470) score += 5;
+  else if (b.SLG >= 0.450) score += 4;
+  else if (b.SLG >= 0.430) score += 3;
+  else if (b.SLG >= 0.410) score += 2;
+  else if (b.SLG >= 0.390) score += 1;
+
+  // BA: max 3pts (higher is better)
+  if      (b.BA >= 0.280) score += 3;
+  else if (b.BA >= 0.265) score += 2;
+  else if (b.BA >= 0.250) score += 1;
+
+  return score; // max 35
+}
+
+function wsConfidenceMultiplier(dataSource, gamesPlayed) {
+  if (dataSource === 'spring') return 0.15;
+  if (gamesPlayed >= 120) return 1.00;
+  if (gamesPlayed >= 82)  return 0.90;
+  if (gamesPlayed >= 60)  return 0.80;
+  if (gamesPlayed >= 40)  return 0.70;
+  if (gamesPlayed >= 25)  return 0.60;
+  if (gamesPlayed >= 15)  return 0.45;
+  if (gamesPlayed >= 5)   return 0.30;
+  return 0.15;
+}
+
+function wsLabel(score) {
+  if (score >= 70) return 'Elite WS contender';
+  if (score >= 55) return 'Strong WS contender';
+  if (score >= 42) return 'Legit contender';
+  if (score >= 30) return 'Bubble team';
+  return 'Long shot';
+}
+
+function calcWsScore(team, dataSource, gamesPlayed) {
+  const pitching   = pitchingWsScore(team.pitching);
+  const offense    = offenseWsScore(team.batting);
+  const raw        = pitching + offense; // max 85
+  const confidence = wsConfidenceMultiplier(dataSource, gamesPlayed);
+  return { raw, pitching, offense, confidence, adjusted: raw * confidence, label: wsLabel(raw) };
+}
+
+// ---------------------------------------------------------------------------
+// Verdict — category wins + WS prediction score
+// ---------------------------------------------------------------------------
+
+function calcVerdict(comparisons, phiWs, ladWs, phiComposite, ladComposite) {
+  // Category edge counts (unchanged — used for the score pills)
   const phi = comparisons.filter(c => c.edge === 'PHI').length;
   const lad = comparisons.filter(c => c.edge === 'LAD').length;
   const m25 = comparisons.filter(c => c.edge === "MLB '25").length;
   const m26 = comparisons.filter(c => c.edge === "MLB '26").length;
 
-  const maxOpp = Math.max(lad, m25, m26);
-
-  // PHI is "so back" if they win more categories than every other benchmark
-  // Tiebreaker: composite score vs Dodgers
-  const philliesBetter = phi !== maxOpp
-    ? phi > maxOpp
-    : phiComposite > ladComposite;
+  // Primary verdict: WS score comparison (PHI raw vs LAD raw)
+  // If scores are equal or close, fall back to category count, then composite
+  const scoreDiff = phiWs.raw - ladWs.raw;
+  let philliesBetter;
+  if (Math.abs(scoreDiff) >= 3) {
+    philliesBetter = scoreDiff > 0;
+  } else {
+    // Tiebreaker 1: category wins vs LAD
+    const maxOpp = Math.max(lad, m25, m26);
+    philliesBetter = phi !== maxOpp ? phi > maxOpp : phiComposite > ladComposite;
+  }
 
   return {
     philliesBetter,
-    category_wins: {
-      phillies: phi,
-      dodgers:  lad,
-      mlb_25:   m25,
-      mlb_26:   m26,
-    },
+    category_wins: { phillies: phi, dodgers: lad, mlb_25: m25, mlb_26: m26 },
   };
 }
 
@@ -334,8 +442,15 @@ async function scrapeAndCompare() {
   const phiComposite = (phillies.offenseScore || 0) + (phillies.pitchingScore || 0);
   const ladComposite = (dodgers.offenseScore  || 0) + (dodgers.pitchingScore  || 0);
 
+  // Games played for confidence multiplier — max across all PHI batters
+  const phiGamesPlayed = Math.max(0, ...philliesRaw.batting.map(s => s.stat?.gamesPlayed || 0));
+  const ladGamesPlayed = Math.max(0, ...dodgersRaw.batting.map(s => s.stat?.gamesPlayed || 0));
+
+  const phiWs = calcWsScore(phillies, philliesRaw.battingSource, phiGamesPlayed);
+  const ladWs = calcWsScore(dodgers,  dodgersRaw.battingSource,  ladGamesPlayed);
+
   const { philliesBetter, category_wins } = calcVerdict(
-    comparisons, phiComposite, ladComposite
+    comparisons, phiWs, ladWs, phiComposite, ladComposite
   );
 
   // Count how many categories each entity "wins" (has the best value)
@@ -356,6 +471,10 @@ async function scrapeAndCompare() {
     scores: {
       phillies: { offense: phillies.offenseScore, pitching: phillies.pitchingScore, total: phiComposite },
       dodgers:  { offense: dodgers.offenseScore,  pitching: dodgers.pitchingScore,  total: ladComposite },
+    },
+    ws_scores: {
+      phillies: phiWs,
+      dodgers:  ladWs,
     },
     category_wins,
     edge_counts,

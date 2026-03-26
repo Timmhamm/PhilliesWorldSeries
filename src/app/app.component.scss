@@ -83,6 +83,52 @@ $gold:  #f5c518;
   }
 }
 
+// WS Prediction Score block
+.ws-score-block {
+  margin: 1rem 0 0.75rem;
+}
+
+.ws-score-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.ws-score-card {
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 0.9rem 1.4rem;
+  min-width: 140px;
+  text-align: center;
+
+  &.ws-winner {
+    border-color: $gold;
+    background: rgba(245,197,24,0.12);
+  }
+
+  .ws-team       { font-size: 0.8rem; color: rgba(255,255,255,0.65); font-family: sans-serif; margin-bottom: 0.25rem; }
+  .ws-pts        { font-size: 2rem; font-family: 'Courier New', monospace; font-weight: bold; color: $gold; line-height: 1.1; }
+  .ws-max        { font-size: 1rem; color: rgba(255,255,255,0.4); }
+  .ws-label      { font-size: 0.72rem; color: rgba(255,255,255,0.55); font-family: sans-serif; margin-top: 0.2rem; }
+  .ws-breakdown  { font-size: 0.68rem; color: rgba(255,255,255,0.35); font-family: 'Courier New', monospace; margin-top: 0.4rem; }
+}
+
+.ws-vs {
+  font-size: 1rem;
+  color: rgba(255,255,255,0.4);
+}
+
+.ws-note {
+  font-size: 0.68rem;
+  color: rgba(255,255,255,0.35);
+  font-family: sans-serif;
+  line-height: 1.6;
+  margin: 0.25rem 0 0;
+}
+
 // Category win pills
 .score-summary {
   display: flex;
