@@ -5,11 +5,18 @@ const { scrapeAndCompare } = require('../../server/scraper');
 exports.handler = async () => {
   let browser;
   try {
+    const executablePath = await chromium.executablePath();
+
     browser = await puppeteer.launch({
-      args: chromium.args,
+      args: [
+        ...chromium.args,
+        '--disable-blink-features=AutomationControlled',
+        '--disable-features=site-per-process',
+      ],
       defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
+      executablePath,
       headless: chromium.headless,
+      ignoreHTTPSErrors: true,
     });
 
     const result = await scrapeAndCompare(browser);
@@ -20,13 +27,16 @@ exports.handler = async () => {
       body: JSON.stringify(result),
     };
   } catch (err) {
-    console.error('Stats function error:', err.message);
+    console.error('Stats function error:', err.message, err.stack);
     return {
       statusCode: 500,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ error: err.message }),
+      body: JSON.stringify({
+        error: err.message,
+        hint: 'Check Netlify function logs for details.',
+      }),
     };
   } finally {
-    if (browser) await browser.close();
+    if (browser) await browser.close().catch(() => {});
   }
 };

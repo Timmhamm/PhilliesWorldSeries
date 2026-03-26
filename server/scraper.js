@@ -10,11 +10,28 @@ const USER_AGENT =
 
 async function scrapeTeam(url, browser) {
   const page = await browser.newPage();
+
+  // Mask automation signals to avoid bot detection
   await page.setUserAgent(USER_AGENT);
-  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 25000 });
+  await page.setExtraHTTPHeaders({
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+  });
+  await page.evaluateOnNewDocument(() => {
+    Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+  });
+
+  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });
+
+  // Baseball Reference hides some tables in comments — unhide them via JS
+  await page.evaluate(() => {
+    document.querySelectorAll('.section_wrapper div.table_outer_container').forEach(el => {
+      el.style.display = 'block';
+    });
+  });
 
   // Wait for at least one stats table to be present
-  await page.waitForSelector('#players_standard_batting, #team_batting', { timeout: 10000 })
+  await page.waitForSelector('#players_standard_batting, #team_batting', { timeout: 8000 })
     .catch(() => {});
 
   const data = await page.evaluate(() => {

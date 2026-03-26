@@ -44,7 +44,17 @@ $gold:  #f5c518;
 .loading-text, .error-text {
   font-size: 1.4rem;
   color: rgba(255,255,255,0.7);
+  margin-bottom: 0.5rem;
+}
+
+.error-block {
   margin-bottom: 2rem;
+  .error-detail {
+    font-size: 0.85rem;
+    color: rgba(255,255,255,0.55);
+    font-family: sans-serif;
+    max-width: 480px;
+  }
 }
 
 // Category win pills

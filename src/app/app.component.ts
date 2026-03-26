@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { timeout } from 'rxjs/operators';
 import { environment } from '../environments/environment';
 
 interface Comparison {
@@ -46,10 +47,12 @@ export class AppComponent implements OnInit {
   battingComparisons: Comparison[] = [];
   pitchingComparisons: Comparison[] = [];
 
+  errorMessage = '';
+
   constructor(private http: HttpClient) {}
 
   ngOnInit() {
-    this.http.get<StatsResult>(environment.apiUrl).subscribe({
+    this.http.get<StatsResult>(environment.apiUrl).pipe(timeout(25000)).subscribe({
       next: (result) => {
         this.data = result;
         this.verdict = result.verdict;
@@ -59,9 +62,16 @@ export class AppComponent implements OnInit {
         this.pitchingComparisons = result.comparisons.slice(8);
         this.loading = false;
       },
-      error: () => {
+      error: (err) => {
         this.loading = false;
         this.error = true;
+        if (err?.name === 'TimeoutError') {
+          this.errorMessage = 'Stats request timed out — the scraper may still be warming up. Try refreshing.';
+        } else if (err?.error?.error) {
+          this.errorMessage = err.error.error;
+        } else {
+          this.errorMessage = 'Could not load stats. Check Netlify function logs for details.';
+        }
       }
     });
   }

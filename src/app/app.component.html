@@ -20,7 +20,10 @@
   </div>
 
   <h2 *ngIf="loading" class="loading-text">Fetching live stats...</h2>
-  <h2 *ngIf="error" class="error-text">Could not load stats. Is the server running?</h2>
+  <div *ngIf="error" class="error-block">
+    <h2 class="error-text">Stats unavailable</h2>
+    <p class="error-detail">{{ errorMessage }}</p>
+  </div>
 
   <!-- Stats Comparison Tables -->
   <div class="stats-section" *ngIf="data && !loading">

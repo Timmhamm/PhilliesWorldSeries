@@ -9,6 +9,8 @@
 
 [functions]
   directory = "netlify/functions"
+  timeout   = 26
+  included_files = ["node_modules/@sparticuz/chromium/bin/**"]
 
 [[redirects]]
   from   = "/api/stats"
