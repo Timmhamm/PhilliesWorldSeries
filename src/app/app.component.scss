@@ -1,11 +1,10 @@
-$red:    #e81828;
-$navy:   #002d62;
+$blue:   #6BAED6;   // Phillies powder blue
+$maroon: #6B1D28;   // Phillies throwback maroon
 $white:  #ffffff;
-$blue:   #74b4d4;   // Phillies powder blue
-$text:   #1a1a2e;
-$muted:  #666688;
-$border: #e0e0ec;
-$bg:     #f8f8fc;
+$off-white: rgba(255,255,255,0.92);
+$muted:  rgba(255,255,255,0.6);
+$card:   rgba(255,255,255,0.18);
+$card-solid: rgba(255,255,255,0.95);
 
 .container {
   display: flex;
@@ -13,21 +12,25 @@ $bg:     #f8f8fc;
   align-items: center;
   min-height: 100vh;
   padding: 2.5rem 1rem 4rem;
-  background-color: $white;
-  color: $text;
+  background: linear-gradient(160deg, lighten($blue, 8%) 0%, $blue 50%, darken($blue, 6%) 100%);
+  color: $white;
   font-family: 'Georgia', serif;
   text-align: center;
 
   h1 {
     font-size: 2.4rem;
-    color: $navy;
+    color: $white;
+    text-shadow: 0 2px 12px rgba($maroon, 0.4);
     margin-bottom: 1.25rem;
+    letter-spacing: 0.02em;
   }
 
   img {
-    width: 180px;
+    width: 200px;
     height: auto;
     margin-bottom: 1.5rem;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba($maroon, 0.35);
   }
 }
 
@@ -36,11 +39,12 @@ $bg:     #f8f8fc;
   margin-bottom: 2rem;
 
   h2 {
-    font-size: 2.6rem;
+    font-size: 2.8rem;
     font-weight: bold;
+    letter-spacing: 0.01em;
 
-    &.so-back { color: $red; }
-    &.so-over { color: $muted; }
+    &.so-back { color: $white; text-shadow: 0 2px 16px rgba($maroon, 0.5); }
+    &.so-over { color: rgba(255,255,255,0.55); }
   }
 }
 
@@ -73,13 +77,14 @@ $bg:     #f8f8fc;
 
   .badge {
     display: inline-block;
-    padding: 0.3rem 0.9rem;
+    padding: 0.3rem 1rem;
     border-radius: 999px;
     font-size: 0.78rem;
     font-family: sans-serif;
+    font-weight: 600;
 
-    &.spring  { background: rgba($blue, 0.12); color: darken($blue, 20%); border: 1px solid rgba($blue, 0.4); }
-    &.regular { background: rgba($navy, 0.06); color: $navy; border: 1px solid rgba($navy, 0.2); }
+    &.spring  { background: rgba($maroon, 0.75); color: $white; border: 1px solid rgba($white, 0.25); }
+    &.regular { background: rgba($white, 0.2); color: $white; border: 1px solid rgba($white, 0.35); }
   }
 }
 
@@ -97,23 +102,26 @@ $bg:     #f8f8fc;
 }
 
 .ws-score-card {
-  background: $bg;
-  border: 1.5px solid $border;
-  border-radius: 12px;
-  padding: 0.9rem 1.4rem;
-  min-width: 145px;
+  background: $card;
+  backdrop-filter: blur(8px);
+  border: 1.5px solid rgba($white, 0.25);
+  border-radius: 14px;
+  padding: 1rem 1.6rem;
+  min-width: 148px;
   text-align: center;
+  transition: border-color 0.2s;
 
   &.ws-winner {
-    border-color: $blue;
-    background: rgba($blue, 0.06);
+    border-color: $white;
+    background: rgba($white, 0.28);
+    box-shadow: 0 4px 20px rgba($maroon, 0.25);
   }
 
-  .ws-team       { font-size: 0.8rem; color: $muted; font-family: sans-serif; margin-bottom: 0.25rem; }
-  .ws-pts        { font-size: 2rem; font-family: 'Courier New', monospace; font-weight: bold; color: $blue; line-height: 1.1; }
+  .ws-team       { font-size: 0.78rem; color: $muted; font-family: sans-serif; margin-bottom: 0.2rem; letter-spacing: 0.04em; text-transform: uppercase; }
+  .ws-pts        { font-size: 2.2rem; font-family: 'Courier New', monospace; font-weight: bold; color: $white; line-height: 1.1; }
   .ws-max        { font-size: 1rem; color: $muted; }
-  .ws-label      { font-size: 0.72rem; color: $navy; font-family: sans-serif; margin-top: 0.2rem; font-weight: 600; }
-  .ws-breakdown  { font-size: 0.68rem; color: $muted; font-family: 'Courier New', monospace; margin-top: 0.4rem; }
+  .ws-label      { font-size: 0.72rem; color: $off-white; font-family: sans-serif; margin-top: 0.25rem; font-weight: 600; }
+  .ws-breakdown  { font-size: 0.65rem; color: $muted; font-family: 'Courier New', monospace; margin-top: 0.4rem; }
 }
 
 .ws-vs {
@@ -122,11 +130,11 @@ $bg:     #f8f8fc;
 }
 
 .ws-note {
-  font-size: 0.68rem;
+  font-size: 0.66rem;
   color: $muted;
   font-family: sans-serif;
   line-height: 1.6;
-  margin: 0.25rem 0 0;
+  margin: 0.3rem 0 0;
 }
 
 // Category win pills
@@ -139,16 +147,16 @@ $bg:     #f8f8fc;
 }
 
 .score-pill {
-  padding: 0.3rem 0.9rem;
+  padding: 0.3rem 1rem;
   border-radius: 999px;
   font-size: 0.82rem;
   font-family: sans-serif;
-  font-weight: 600;
+  font-weight: 700;
 
-  &.phillies-pill { background: $red; color: $white; }
-  &.dodgers-pill  { background: $navy; color: $white; }
-  &.mlb25-pill    { background: $bg; color: $muted; border: 1px solid $border; }
-  &.mlb26-pill    { background: rgba($blue, 0.12); color: darken($blue, 25%); border: 1px solid rgba($blue, 0.35); }
+  &.phillies-pill { background: $maroon; color: $white; box-shadow: 0 2px 8px rgba($maroon, 0.5); }
+  &.dodgers-pill  { background: rgba($white, 0.2); color: $white; border: 1px solid rgba($white, 0.35); }
+  &.mlb25-pill    { background: rgba($white, 0.12); color: rgba($white,0.7); border: 1px solid rgba($white, 0.2); }
+  &.mlb26-pill    { background: rgba($maroon, 0.6); color: $white; border: 1px solid rgba($white, 0.2); }
 }
 
 // Stats tables
@@ -157,28 +165,28 @@ $bg:     #f8f8fc;
   max-width: 760px;
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1.5rem;
 }
 
 .stats-group {
-  background: $bg;
-  border: 1px solid $border;
-  border-radius: 12px;
-  padding: 1.25rem 1.5rem;
+  background: $card-solid;
+  border-radius: 16px;
+  padding: 1.5rem 1.75rem;
+  box-shadow: 0 4px 24px rgba($maroon, 0.15);
 
   h3 {
     font-size: 1rem;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.1em;
     margin: 0 0 1rem;
-    color: $navy;
+    color: $maroon;
 
     .subtitle {
-      font-size: 0.72rem;
+      font-size: 0.7rem;
       font-weight: normal;
       text-transform: none;
       letter-spacing: 0;
-      color: $muted;
+      color: lighten($maroon, 25%);
     }
   }
 
@@ -189,29 +197,35 @@ $bg:     #f8f8fc;
     font-size: 0.88rem;
 
     thead tr {
-      border-bottom: 1px solid $border;
+      border-bottom: 2px solid rgba($maroon, 0.15);
 
       th {
         padding: 0.4rem 0.6rem;
-        color: $muted;
-        font-weight: normal;
-        font-size: 0.75rem;
+        color: lighten($maroon, 20%);
+        font-weight: 700;
+        font-size: 0.72rem;
         text-transform: uppercase;
-        letter-spacing: 0.06em;
+        letter-spacing: 0.07em;
       }
     }
 
     tbody tr {
-      border-bottom: 1px solid $border;
+      border-bottom: 1px solid rgba($blue, 0.15);
 
       &:last-child { border-bottom: none; }
+      &:hover { background: rgba($blue, 0.06); }
 
       td {
         padding: 0.5rem 0.6rem;
-        color: $text;
+        color: #2a2a3e;
 
-        &.stat-label { text-align: left; color: $navy; font-family: 'Georgia', serif; font-weight: 600; }
-        &.winner     { color: $blue; font-weight: bold; }
+        &.stat-label {
+          text-align: left;
+          color: $maroon;
+          font-family: 'Georgia', serif;
+          font-weight: 700;
+        }
+        &.winner { color: $maroon; font-weight: bold; }
       }
     }
 
@@ -219,12 +233,12 @@ $bg:     #f8f8fc;
 
     .mlb-best {
       text-align: center;
-      color: $muted;
+      color: #666;
 
       .mlb-team {
         display: block;
-        font-size: 0.65rem;
-        color: lighten($muted, 15%);
+        font-size: 0.64rem;
+        color: #aaa;
         margin-top: 1px;
       }
     }
@@ -235,32 +249,33 @@ $bg:     #f8f8fc;
   text-align: center;
 
   span {
-    padding: 0.15rem 0.5rem;
-    border-radius: 4px;
-    font-size: 0.7rem;
+    padding: 0.18rem 0.55rem;
+    border-radius: 5px;
+    font-size: 0.68rem;
     font-weight: bold;
     font-family: sans-serif;
+    letter-spacing: 0.03em;
   }
 
-  .edge-PHI   { background: $red;                     color: $white; }
-  .edge-LAD   { background: $navy;                    color: $white; }
-  .edge-MLB25 { background: rgba($muted, 0.15);       color: $navy; }
-  .edge-MLB26 { background: rgba($blue, 0.18);        color: darken($blue, 28%); }
+  .edge-PHI   { background: $maroon;                   color: $white; }
+  .edge-LAD   { background: darken($blue, 20%);        color: $white; }
+  .edge-MLB25 { background: rgba($blue, 0.18);         color: darken($blue, 30%); }
+  .edge-MLB26 { background: rgba($maroon, 0.12);       color: $maroon; }
 }
 
 // Composite scores
 .composite-scores {
-  background: $bg;
-  border: 1px solid $border;
-  border-radius: 12px;
-  padding: 1.25rem 1.5rem;
+  background: $card-solid;
+  border-radius: 16px;
+  padding: 1.5rem 1.75rem;
+  box-shadow: 0 4px 24px rgba($maroon, 0.15);
 
   h3 {
     font-size: 1rem;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.1em;
     margin: 0 0 1rem;
-    color: $navy;
+    color: $maroon;
   }
 }
 
@@ -275,20 +290,20 @@ $bg:     #f8f8fc;
 .score-card {
   text-align: center;
 
-  .score-team  { font-size: 0.85rem; color: $muted; margin-bottom: 0.25rem; }
-  .score-value { font-size: 1.8rem; font-family: 'Courier New', monospace; font-weight: bold; color: $blue; }
+  .score-team  { font-size: 0.82rem; color: lighten($maroon, 20%); margin-bottom: 0.25rem; font-family: sans-serif; }
+  .score-value { font-size: 1.8rem; font-family: 'Courier New', monospace; font-weight: bold; color: $maroon; }
 }
 
 .score-vs {
   font-size: 1rem;
-  color: $muted;
+  color: rgba($maroon, 0.4);
 }
 
 .score-note {
-  font-size: 0.72rem;
-  color: $muted;
+  font-size: 0.7rem;
+  color: lighten($maroon, 25%);
   font-family: sans-serif;
-  line-height: 1.6;
+  line-height: 1.7;
 }
 
 .updated {
