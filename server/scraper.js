@@ -1,66 +1,30 @@
-const PHILLIES_URL = 'https://www.baseball-reference.com/teams/PHI/2026.shtml';
-const DODGERS_URL  = 'https://www.baseball-reference.com/teams/LAD/2025.shtml';
+const fetch = require('node-fetch');
 
-const USER_AGENT =
-  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+// MLB Stats API — no auth required, official data
+const MLB_API = 'https://statsapi.mlb.com/api/v1';
+const PHILLIES_ID = 143;
+const DODGERS_ID  = 119;
 
 // ---------------------------------------------------------------------------
-// Scraping
+// Fetch player stats from MLB API
 // ---------------------------------------------------------------------------
 
-async function scrapeTeam(url, browser) {
-  const page = await browser.newPage();
+async function fetchTeamStats(teamId, season) {
+  const [hittingRes, pitchingRes] = await Promise.all([
+    fetch(`${MLB_API}/stats?stats=season&group=hitting&season=${season}&sportId=1&teamId=${teamId}&limit=100`),
+    fetch(`${MLB_API}/stats?stats=season&group=pitching&season=${season}&sportId=1&teamId=${teamId}&limit=100`),
+  ]);
 
-  // Mask automation signals to avoid bot detection
-  await page.setUserAgent(USER_AGENT);
-  await page.setExtraHTTPHeaders({
-    'Accept-Language': 'en-US,en;q=0.9',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-  });
-  await page.evaluateOnNewDocument(() => {
-    Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-  });
+  if (!hittingRes.ok)  throw new Error(`MLB API hitting fetch failed: ${hittingRes.status}`);
+  if (!pitchingRes.ok) throw new Error(`MLB API pitching fetch failed: ${pitchingRes.status}`);
 
-  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });
+  const hittingJson  = await hittingRes.json();
+  const pitchingJson = await pitchingRes.json();
 
-  // Baseball Reference hides some tables in comments — unhide them via JS
-  await page.evaluate(() => {
-    document.querySelectorAll('.section_wrapper div.table_outer_container').forEach(el => {
-      el.style.display = 'block';
-    });
-  });
-
-  // Wait for at least one stats table to be present
-  await page.waitForSelector('#players_standard_batting, #team_batting', { timeout: 8000 })
-    .catch(() => {});
-
-  const data = await page.evaluate(() => {
-    const parseTable = (tableId) => {
-      const table = document.querySelector(`#${tableId}`);
-      if (!table) return [];
-      const headers = Array.from(table.querySelectorAll('thead tr:last-child th, thead tr:last-child td'))
-        .map(th => th.getAttribute('data-stat') || th.textContent.trim());
-      return Array.from(table.querySelectorAll('tbody tr'))
-        .filter(row => !row.classList.contains('thead') && !row.classList.contains('spacer'))
-        .map(row => {
-          const obj = {};
-          Array.from(row.querySelectorAll('td, th')).forEach((cell, i) => {
-            const key = cell.getAttribute('data-stat') || headers[i] || `col_${i}`;
-            obj[key] = cell.textContent.trim();
-          });
-          return obj;
-        })
-        .filter(row => Object.values(row).some(v => v && v !== ''));
-    };
-
-    return {
-      batting:  parseTable('players_standard_batting'),
-      pitching: parseTable('players_standard_pitching'),
-    };
-  });
-
-  await page.close();
-  return data;
+  return {
+    batting:  hittingJson.stats?.[0]?.splits  || [],
+    pitching: pitchingJson.stats?.[0]?.splits || [],
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -70,35 +34,51 @@ async function scrapeTeam(url, browser) {
 const toFloat = v => { const n = parseFloat(v); return isNaN(n) ? null : n; };
 const toInt   = v => { const n = parseInt(v);   return isNaN(n) ? null : n; };
 
-function parseBatter(row) {
+function parseBatter(split) {
+  const s = split.stat || {};
   return {
-    name: row.player || row.name_display || '?',
-    PA:   toInt(row.PA)   || 0,
-    HR:   toInt(row.HR)   || 0,
-    BB:   toInt(row.BB)   || 0,
-    SO:   toInt(row.SO)   || 0,
-    SB:   toInt(row.SB)   || 0,
-    BA:   toFloat(row.batting_avg),
-    OBP:  toFloat(row.onbase_perc),
-    SLG:  toFloat(row.slugging_perc),
-    OPS:  toFloat(row.onbase_plus_slugging),
+    name: split.player?.fullName || '?',
+    PA:   toInt(s.plateAppearances) || 0,
+    HR:   toInt(s.homeRuns)         || 0,
+    BB:   toInt(s.baseOnBalls)      || 0,
+    SO:   toInt(s.strikeOuts)       || 0,
+    SB:   toInt(s.stolenBases)      || 0,
+    BA:   toFloat(s.avg),
+    OBP:  toFloat(s.obp),
+    SLG:  toFloat(s.slg),
+    OPS:  toFloat(s.ops),
   };
 }
 
-function parsePitcher(row) {
-  const ip = toFloat(row.IP) || 0;
-  const so = toInt(row.SO)   || 0;
-  const bb = toInt(row.BB)   || 0;
+function parsePitcher(split) {
+  const s = split.stat || {};
+  // IP is stored as "62.1" (innings.outs) — convert to decimal
+  const ipRaw = s.inningsPitched || '0';
+  const [inn, outs = '0'] = String(ipRaw).split('.');
+  const ip = parseInt(inn) + parseInt(outs) / 3;
+
+  const so  = toInt(s.strikeOuts)   || 0;
+  const bb  = toInt(s.baseOnBalls)  || 0;
+  const hr  = toInt(s.homeRuns)     || 0;
+  const h   = toInt(s.hits)         || 0;
+  const er  = toInt(s.earnedRuns)   || 0;
+
+  const era  = ip > 0 ? (er / ip) * 9  : null;
+  const whip = ip > 0 ? (bb + h) / ip  : null;
+  const so9  = ip > 0 ? (so / ip) * 9  : null;
+  const bb9  = ip > 0 ? (bb / ip) * 9  : null;
+  const hr9  = ip > 0 ? (hr / ip) * 9  : null;
+  const sobb = bb > 0 ? so / bb : so > 0 ? so : null;
+
   return {
-    name: row.player || row.name_display || '?',
+    name: split.player?.fullName || '?',
     IP:   ip,
-    ERA:  toFloat(row.earned_run_avg),
-    WHIP: toFloat(row.whip),
-    H9:   toFloat(row['H/9'] || row.hits_per_nine),
-    HR9:  toFloat(row['HR/9'] || row.hr_per_nine),
-    BB9:  toFloat(row['BB/9'] || row.bb_per_nine),
-    SO9:  toFloat(row['SO/9'] || row.so_per_nine),
-    SOBB: bb > 0 ? so / bb : so > 0 ? so : null,
+    ERA:  era  ?? toFloat(s.era),
+    WHIP: whip ?? toFloat(s.whip),
+    SO9:  so9,
+    BB9:  bb9,
+    HR9:  hr9,
+    SOBB: sobb,
   };
 }
 
@@ -107,10 +87,10 @@ function parsePitcher(row) {
 // ---------------------------------------------------------------------------
 
 function weightedAvg(players, statKey, weightKey) {
-  const qualified = players.filter(p => p[statKey] !== null && p[weightKey] > 0);
-  const totalWeight = qualified.reduce((sum, p) => sum + p[weightKey], 0);
+  const q = players.filter(p => p[statKey] !== null && p[weightKey] > 0);
+  const totalWeight = q.reduce((sum, p) => sum + p[weightKey], 0);
   if (totalWeight === 0) return null;
-  return qualified.reduce((sum, p) => sum + p[statKey] * p[weightKey], 0) / totalWeight;
+  return q.reduce((sum, p) => sum + p[statKey] * p[weightKey], 0) / totalWeight;
 }
 
 function sumStat(players, statKey) {
@@ -122,23 +102,23 @@ function sumStat(players, statKey) {
 // ---------------------------------------------------------------------------
 
 function offenseScore(batters) {
-  const qualified = batters.filter(p => p.PA >= 50);
-  if (!qualified.length) return null;
-  const OPS = weightedAvg(qualified, 'OPS', 'PA');
-  const OBP = weightedAvg(qualified, 'OBP', 'PA');
-  const SLG = weightedAvg(qualified, 'SLG', 'PA');
+  const q = batters.filter(p => p.PA >= 50);
+  if (!q.length) return null;
+  const OPS = weightedAvg(q, 'OPS', 'PA');
+  const OBP = weightedAvg(q, 'OBP', 'PA');
+  const SLG = weightedAvg(q, 'SLG', 'PA');
   if (OPS === null) return null;
   return OPS * 0.50 + OBP * 0.30 + SLG * 0.20;
 }
 
 function pitchingScore(pitchers) {
-  const qualified = pitchers.filter(p => p.IP >= 10);
-  if (!qualified.length) return null;
-  const ERA  = weightedAvg(qualified, 'ERA',  'IP');
-  const WHIP = weightedAvg(qualified, 'WHIP', 'IP');
-  const SOBB = weightedAvg(qualified, 'SOBB', 'IP');
-  const BB9  = weightedAvg(qualified, 'BB9',  'IP');
-  const HR9  = weightedAvg(qualified, 'HR9',  'IP');
+  const q = pitchers.filter(p => p.IP >= 10);
+  if (!q.length) return null;
+  const ERA  = weightedAvg(q, 'ERA',  'IP');
+  const WHIP = weightedAvg(q, 'WHIP', 'IP');
+  const SOBB = weightedAvg(q, 'SOBB', 'IP');
+  const BB9  = weightedAvg(q, 'BB9',  'IP');
+  const HR9  = weightedAvg(q, 'HR9',  'IP');
   if (!ERA || !WHIP) return null;
   return (1 / ERA)  * 0.30 +
          (1 / WHIP) * 0.25 +
@@ -154,31 +134,31 @@ function pitchingScore(pitchers) {
 function buildTeamSummary(rawBatting, rawPitching) {
   const batters  = rawBatting.map(parseBatter).filter(p => p.PA > 0);
   const pitchers = rawPitching.map(parsePitcher).filter(p => p.IP > 0);
-  const qualBatters  = batters.filter(p => p.PA >= 50);
-  const qualPitchers = pitchers.filter(p => p.IP >= 10);
+  const qB = batters.filter(p => p.PA >= 50);
+  const qP = pitchers.filter(p => p.IP >= 10);
 
   return {
     batting: {
-      OPS: weightedAvg(qualBatters, 'OPS', 'PA'),
-      OBP: weightedAvg(qualBatters, 'OBP', 'PA'),
-      SLG: weightedAvg(qualBatters, 'SLG', 'PA'),
-      BA:  weightedAvg(qualBatters, 'BA',  'PA'),
+      OPS: weightedAvg(qB, 'OPS', 'PA'),
+      OBP: weightedAvg(qB, 'OBP', 'PA'),
+      SLG: weightedAvg(qB, 'SLG', 'PA'),
+      BA:  weightedAvg(qB, 'BA',  'PA'),
       HR:  sumStat(batters, 'HR'),
       BB:  sumStat(batters, 'BB'),
       SO:  sumStat(batters, 'SO'),
       SB:  sumStat(batters, 'SB'),
     },
     pitching: {
-      ERA:  weightedAvg(qualPitchers, 'ERA',  'IP'),
-      WHIP: weightedAvg(qualPitchers, 'WHIP', 'IP'),
-      SO9:  weightedAvg(qualPitchers, 'SO9',  'IP'),
-      BB9:  weightedAvg(qualPitchers, 'BB9',  'IP'),
-      HR9:  weightedAvg(qualPitchers, 'HR9',  'IP'),
-      SOBB: weightedAvg(qualPitchers, 'SOBB', 'IP'),
+      ERA:  weightedAvg(qP, 'ERA',  'IP'),
+      WHIP: weightedAvg(qP, 'WHIP', 'IP'),
+      SO9:  weightedAvg(qP, 'SO9',  'IP'),
+      BB9:  weightedAvg(qP, 'BB9',  'IP'),
+      HR9:  weightedAvg(qP, 'HR9',  'IP'),
+      SOBB: weightedAvg(qP, 'SOBB', 'IP'),
     },
     offenseScore:  offenseScore(batters),
     pitchingScore: pitchingScore(pitchers),
-    playerCount: { batters: qualBatters.length, pitchers: qualPitchers.length },
+    playerCount: { batters: qB.length, pitchers: qP.length },
   };
 }
 
@@ -190,8 +170,12 @@ function compareStats(phillies, dodgers) {
   const comparisons = [];
   const add = (label, phiVal, ladVal, higherIsBetter, fmt = v => v?.toFixed(3) ?? 'N/A') => {
     if (phiVal == null || ladVal == null) return;
-    const phiBetter = higherIsBetter ? phiVal > ladVal : phiVal < ladVal;
-    comparisons.push({ label, phillies: fmt(phiVal), dodgers: fmt(ladVal), phillies_better: phiBetter });
+    comparisons.push({
+      label,
+      phillies: fmt(phiVal),
+      dodgers:  fmt(ladVal),
+      phillies_better: higherIsBetter ? phiVal > ladVal : phiVal < ladVal,
+    });
   };
   const fmt3 = v => v?.toFixed(3) ?? 'N/A';
   const fmt1 = v => v?.toFixed(1) ?? 'N/A';
@@ -215,18 +199,18 @@ function compareStats(phillies, dodgers) {
 }
 
 // ---------------------------------------------------------------------------
-// Main export — accepts an externally created browser instance
+// Main export
 // ---------------------------------------------------------------------------
 
-async function scrapeAndCompare(browser) {
-  console.log(`[${new Date().toISOString()}] Scraping both teams...`);
+async function scrapeAndCompare() {
+  console.log(`[${new Date().toISOString()}] Fetching MLB API stats...`);
 
   const [philliesRaw, dodgersRaw] = await Promise.all([
-    scrapeTeam(PHILLIES_URL, browser),
-    scrapeTeam(DODGERS_URL,  browser),
+    fetchTeamStats(PHILLIES_ID, 2026),
+    fetchTeamStats(DODGERS_ID,  2025),
   ]);
 
-  console.log(`[${new Date().toISOString()}] Scrape complete.`);
+  console.log(`[${new Date().toISOString()}] Fetch complete.`);
 
   const phillies = buildTeamSummary(philliesRaw.batting, philliesRaw.pitching);
   const dodgers  = buildTeamSummary(dodgersRaw.batting,  dodgersRaw.pitching);
@@ -234,21 +218,19 @@ async function scrapeAndCompare(browser) {
 
   const phiTotal = (phillies.offenseScore || 0) + (phillies.pitchingScore || 0);
   const ladTotal = (dodgers.offenseScore  || 0) + (dodgers.pitchingScore  || 0);
-  const philliesCategoryWins = comparisons.filter(c => c.phillies_better).length;
-  const dodgersCategoryWins  = comparisons.filter(c => !c.phillies_better).length;
-  const philliesBetter = phiTotal !== ladTotal
-    ? phiTotal > ladTotal
-    : philliesCategoryWins >= dodgersCategoryWins;
+  const phiCatWins = comparisons.filter(c => c.phillies_better).length;
+  const ladCatWins = comparisons.filter(c => !c.phillies_better).length;
+  const philliesBetter = phiTotal !== ladTotal ? phiTotal > ladTotal : phiCatWins >= ladCatWins;
 
   return {
-    last_updated: new Date().toISOString(),
-    verdict:      philliesBetter ? "We're so back" : "It's so over",
+    last_updated:    new Date().toISOString(),
+    verdict:         philliesBetter ? "We're so back" : "It's so over",
     phillies_better: philliesBetter,
     scores: {
       phillies: { offense: phillies.offenseScore, pitching: phillies.pitchingScore, total: phiTotal },
       dodgers:  { offense: dodgers.offenseScore,  pitching: dodgers.pitchingScore,  total: ladTotal },
     },
-    category_wins: { phillies: philliesCategoryWins, dodgers: dodgersCategoryWins },
+    category_wins: { phillies: phiCatWins, dodgers: ladCatWins },
     comparisons,
     team_stats: { phillies, dodgers },
   };
