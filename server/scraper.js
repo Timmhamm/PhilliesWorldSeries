@@ -54,6 +54,7 @@ async function fetchMLBLeaders(season) {
 
   const shortName = name => name?.split(' ').pop() ?? name;
 
+  // Rate stats — use raw value directly
   const bestFrom = (splits, field, higherIsBetter) => {
     const valid = splits.filter(s => s.stat?.[field] != null && !isNaN(parseFloat(s.stat[field])));
     if (!valid.length) return null;
@@ -63,17 +64,32 @@ async function fetchMLBLeaders(season) {
     return { value: parseFloat(valid[0].stat[field]), team: shortName(valid[0].team.name) };
   };
 
+  // Counting stats — project each team to 162-game pace before comparing
+  const bestFromPaced = (splits, field, higherIsBetter) => {
+    const valid = splits
+      .map(s => {
+        const raw = parseFloat(s.stat?.[field]);
+        const gp  = parseFloat(s.stat?.gamesPlayed) || 0;
+        if (isNaN(raw) || gp === 0) return null;
+        return { paced: (raw / gp) * 162, team: shortName(s.team.name) };
+      })
+      .filter(Boolean);
+    if (!valid.length) return null;
+    valid.sort((a, b) => higherIsBetter ? b.paced - a.paced : a.paced - b.paced);
+    return { value: valid[0].paced, team: valid[0].team };
+  };
+
   return {
     meaningful,
     batting: {
-      OPS: bestFrom(hSplits, 'ops',         true),
-      OBP: bestFrom(hSplits, 'obp',         true),
-      SLG: bestFrom(hSplits, 'slg',         true),
-      BA:  bestFrom(hSplits, 'avg',         true),
-      HR:  bestFrom(hSplits, 'homeRuns',    true),
-      BB:  bestFrom(hSplits, 'baseOnBalls', true),
-      SO:  bestFrom(hSplits, 'strikeOuts',  false),
-      SB:  bestFrom(hSplits, 'stolenBases', true),
+      OPS: bestFrom(hSplits,      'ops',         true),
+      OBP: bestFrom(hSplits,      'obp',         true),
+      SLG: bestFrom(hSplits,      'slg',         true),
+      BA:  bestFrom(hSplits,      'avg',         true),
+      HR:  bestFromPaced(hSplits, 'homeRuns',    true),
+      BB:  bestFromPaced(hSplits, 'baseOnBalls', true),
+      SO:  bestFromPaced(hSplits, 'strikeOuts',  false),
+      SB:  bestFromPaced(hSplits, 'stolenBases', true),
     },
     pitching: {
       ERA:  bestFrom(pSplits, 'era',                false),
