@@ -156,7 +156,19 @@ $gold:  #f5c518;
       }
     }
 
-    .phillies-col, .dodgers-col { text-align: center; }
+    .phillies-col, .dodgers-col, .mlb-col { text-align: center; }
+
+    .mlb-best {
+      text-align: center;
+      color: rgba(255,255,255,0.6);
+
+      .mlb-team {
+        display: block;
+        font-size: 0.68rem;
+        color: rgba(255,255,255,0.35);
+        margin-top: 1px;
+      }
+    }
   }
 }
 

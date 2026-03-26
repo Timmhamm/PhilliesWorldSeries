@@ -45,6 +45,7 @@
             <th>Stat</th>
             <th class="phillies-col">Phillies</th>
             <th class="dodgers-col">Dodgers '25</th>
+            <th class="mlb-col">MLB Best '25</th>
             <th>Edge</th>
           </tr>
         </thead>
@@ -53,6 +54,10 @@
             <td class="stat-label">{{ row.label }}</td>
             <td [class.winner]="row.phillies_better">{{ row.phillies }}</td>
             <td [class.winner]="!row.phillies_better">{{ row.dodgers }}</td>
+            <td class="mlb-best">
+              {{ row.mlbBest }}
+              <span class="mlb-team">{{ row.mlbBestTeam }}</span>
+            </td>
             <td class="edge">
               <span *ngIf="row.phillies_better" class="phi-edge">PHI</span>
               <span *ngIf="!row.phillies_better" class="lad-edge">LAD</span>

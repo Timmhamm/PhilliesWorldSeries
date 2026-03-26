@@ -7,6 +7,8 @@ interface Comparison {
   label: string;
   phillies: string;
   dodgers: string;
+  mlbBest: string;
+  mlbBestTeam: string;
   phillies_better: boolean;
 }
 
