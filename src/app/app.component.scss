@@ -64,7 +64,8 @@ $gold:  #f5c518;
   margin-top: 0.5rem;
 }
 
-.leaders-pill { background: rgba(255,200,0,0.2); color: $gold; border: 1px solid rgba(255,200,0,0.3); }
+.mlb25-pill { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.7); border: 1px solid rgba(255,255,255,0.2); }
+.mlb26-pill { background: rgba(255,200,0,0.15); color: $gold; border: 1px solid rgba(255,200,0,0.3); }
 
 // Data source badge
 .source-badge {
@@ -184,25 +185,18 @@ $gold:  #f5c518;
 .edge {
   text-align: center;
 
-  .phi-edge {
-    background: $navy;
-    color: $white;
+  span {
     padding: 0.15rem 0.5rem;
     border-radius: 4px;
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     font-weight: bold;
     font-family: sans-serif;
   }
 
-  .lad-edge {
-    background: rgba(0,90,200,0.5);
-    color: $white;
-    padding: 0.15rem 0.5rem;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: bold;
-    font-family: sans-serif;
-  }
+  .edge-PHI      { background: $navy;                    color: $white; }
+  .edge-LAD      { background: rgba(0,90,200,0.5);       color: $white; }
+  .edge-MLB25    { background: rgba(255,255,255,0.15);   color: $white; }
+  .edge-MLB26    { background: rgba(255,200,0,0.25);     color: $gold;  }
 }
 
 // Composite scores

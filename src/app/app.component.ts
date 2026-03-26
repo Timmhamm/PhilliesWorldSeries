@@ -11,6 +11,7 @@ interface Comparison {
   mlbBestTeam25: string;
   mlbBest26: string;
   mlbBestTeam26: string;
+  edge: string;
   phillies_better: boolean;
   phillies_better_26: boolean | null;
 }
@@ -31,13 +32,18 @@ interface StatsResult {
     phillies: TeamScores;
     dodgers: TeamScores;
   };
+  total_categories: number;
   category_wins: {
     phillies: number;
     dodgers: number;
-    phillies_vs_26: number;
-    leaders_vs_phi: number;
-    phi_total: number;
-    opp_total: number;
+    mlb_25: number;
+    mlb_26: number;
+  };
+  edge_counts: {
+    PHI: number;
+    LAD: number;
+    MLB_25: number;
+    MLB_26: number;
   };
   comparisons: Comparison[];
 }

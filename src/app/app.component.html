@@ -20,20 +20,14 @@
     </div>
 
     <div class="score-summary" *ngIf="data">
-      <span class="score-pill phillies-pill">
-        PHI vs LAD: {{ data.category_wins.phillies }}/{{ data.comparisons.length }} categories
-      </span>
-      <span class="score-pill dodgers-pill">
-        LAD vs PHI: {{ data.category_wins.dodgers }}/{{ data.comparisons.length }} categories
-      </span>
-      <span class="score-pill leaders-pill" *ngIf="leaders26Active">
-        PHI vs '26 Leaders: {{ data.category_wins.phillies_vs_26 }}/{{ data.comparisons.length }} categories
-      </span>
+      <span class="score-pill phillies-pill">PHI: {{ data.edge_counts.PHI }}/{{ data.total_categories }}</span>
+      <span class="score-pill dodgers-pill">LAD: {{ data.edge_counts.LAD }}/{{ data.total_categories }}</span>
+      <span class="score-pill mlb25-pill">MLB '25: {{ data.edge_counts.MLB_25 }}/{{ data.total_categories }}</span>
+      <span class="score-pill mlb26-pill">MLB '26: {{ data.edge_counts.MLB_26 }}/{{ data.total_categories }}</span>
     </div>
 
     <p class="verdict-note" *ngIf="data">
-      Decision based on {{ data.category_wins.phi_total }} vs {{ data.category_wins.opp_total }} total wins
-      across {{ leaders26Active ? 'Dodgers \'25 + 2026 MLB leaders' : 'Dodgers \'25' }}
+      "We're so back" if PHI leads all teams in category wins
     </p>
   </div>
 
@@ -73,8 +67,7 @@
               <span class="mlb-team">{{ row.mlbBestTeam26 }}</span>
             </td>
             <td class="edge">
-              <span *ngIf="row.phillies_better" class="phi-edge">PHI</span>
-              <span *ngIf="!row.phillies_better" class="lad-edge">LAD</span>
+              <span [class]="'edge-' + row.edge.replace(' ', '').replace(\"'\", '')">{{ row.edge }}</span>
             </td>
           </tr>
         </tbody>
@@ -108,8 +101,7 @@
               <span class="mlb-team">{{ row.mlbBestTeam26 }}</span>
             </td>
             <td class="edge">
-              <span *ngIf="row.phillies_better" class="phi-edge">PHI</span>
-              <span *ngIf="!row.phillies_better" class="lad-edge">LAD</span>
+              <span [class]="'edge-' + row.edge.replace(' ', '').replace(\"'\", '')">{{ row.edge }}</span>
             </td>
           </tr>
         </tbody>

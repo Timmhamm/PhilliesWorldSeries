@@ -208,19 +208,34 @@ function compareStats(phillies, dodgers, leaders25, leaders26) {
   const add = (label, phiVal, ladVal, best25, best26, higherIsBetter, fmt) => {
     if (phiVal == null || ladVal == null) return;
     const f = fmt || (v => v?.toFixed(3) ?? 'N/A');
+
+    // Determine which entity has the best value across all four
+    const candidates = [
+      { key: 'PHI',    val: phiVal },
+      { key: 'LAD',    val: ladVal },
+      { key: "MLB '25", val: best25?.value ?? null },
+      { key: "MLB '26", val: best26?.value ?? null },
+    ].filter(c => c.val != null);
+
+    const best = candidates.reduce((a, b) =>
+      (higherIsBetter ? b.val > a.val : b.val < a.val) ? b : a
+    );
+
     const better26 = best26?.value != null
       ? (higherIsBetter ? phiVal > best26.value : phiVal < best26.value)
       : null;
+
     rows.push({
       label,
-      phillies:              f(phiVal),
-      dodgers:               f(ladVal),
-      mlbBest25:             best25 ? f(best25.value) : 'N/A',
-      mlbBestTeam25:         best25?.team ?? '',
-      mlbBest26:             best26 ? f(best26.value) : 'TBD',
-      mlbBestTeam26:         best26?.team ?? '',
-      phillies_better:       higherIsBetter ? phiVal > ladVal : phiVal < ladVal,
-      phillies_better_26:    better26,
+      phillies:           f(phiVal),
+      dodgers:            f(ladVal),
+      mlbBest25:          best25 ? f(best25.value) : 'N/A',
+      mlbBestTeam25:      best25?.team ?? '',
+      mlbBest26:          best26 ? f(best26.value) : 'TBD',
+      mlbBestTeam26:      best26?.team ?? '',
+      edge:               best.key,
+      phillies_better:    higherIsBetter ? phiVal > ladVal : phiVal < ladVal,
+      phillies_better_26: better26,
     });
   };
 
@@ -255,37 +270,28 @@ function compareStats(phillies, dodgers, leaders25, leaders26) {
 // Verdict — PHI vs LAD + PHI vs 2026 leader (when data is meaningful)
 // ---------------------------------------------------------------------------
 
-function calcVerdict(comparisons, phiComposite, ladComposite, leaders26Meaningful) {
-  // PHI vs LAD category wins
-  const phiVsLad = comparisons.filter(c => c.phillies_better).length;
-  const ladVsPhi = comparisons.filter(c => !c.phillies_better).length;
+function calcVerdict(comparisons, phiComposite, ladComposite) {
+  // Each category has one winner — count how many each entity wins outright
+  const phi = comparisons.filter(c => c.edge === 'PHI').length;
+  const lad = comparisons.filter(c => c.edge === 'LAD').length;
+  const m25 = comparisons.filter(c => c.edge === "MLB '25").length;
+  const m26 = comparisons.filter(c => c.edge === "MLB '26").length;
 
-  // PHI vs 2026 leader category wins (only counted when season has enough data)
-  const phiVs26 = leaders26Meaningful
-    ? comparisons.filter(c => c.phillies_better_26 === true).length
-    : 0;
-  const leadVsPhi26 = leaders26Meaningful
-    ? comparisons.filter(c => c.phillies_better_26 === false).length
-    : 0;
+  const maxOpp = Math.max(lad, m25, m26);
 
-  // Total wins across both benchmarks
-  const phiTotal = phiVsLad + phiVs26;
-  const oppTotal = ladVsPhi + leadVsPhi26;
-
-  // Primary tiebreaker: composite score vs Dodgers
-  const philliesBetter = phiTotal !== oppTotal
-    ? phiTotal > oppTotal
+  // PHI is "so back" if they win more categories than every other benchmark
+  // Tiebreaker: composite score vs Dodgers
+  const philliesBetter = phi !== maxOpp
+    ? phi > maxOpp
     : phiComposite > ladComposite;
 
   return {
     philliesBetter,
     category_wins: {
-      phillies:        phiVsLad,
-      dodgers:         ladVsPhi,
-      phillies_vs_26:  phiVs26,
-      leaders_vs_phi:  leadVsPhi26,
-      phi_total:       phiTotal,
-      opp_total:       oppTotal,
+      phillies: phi,
+      dodgers:  lad,
+      mlb_25:   m25,
+      mlb_26:   m26,
     },
   };
 }
@@ -313,8 +319,16 @@ async function scrapeAndCompare() {
   const ladComposite = (dodgers.offenseScore  || 0) + (dodgers.pitchingScore  || 0);
 
   const { philliesBetter, category_wins } = calcVerdict(
-    comparisons, phiComposite, ladComposite, leaders26.meaningful
+    comparisons, phiComposite, ladComposite
   );
+
+  // Count how many categories each entity "wins" (has the best value)
+  const edge_counts = {
+    'PHI':     comparisons.filter(c => c.edge === 'PHI').length,
+    'LAD':     comparisons.filter(c => c.edge === 'LAD').length,
+    'MLB_25':  comparisons.filter(c => c.edge === "MLB '25").length,
+    'MLB_26':  comparisons.filter(c => c.edge === "MLB '26").length,
+  };
 
   return {
     last_updated:         new Date().toISOString(),
@@ -322,11 +336,13 @@ async function scrapeAndCompare() {
     phillies_better:      philliesBetter,
     phillies_data_source: philliesRaw.battingSource,
     leaders_26_active:    leaders26.meaningful,
+    total_categories:     comparisons.length,
     scores: {
       phillies: { offense: phillies.offenseScore, pitching: phillies.pitchingScore, total: phiComposite },
       dodgers:  { offense: dodgers.offenseScore,  pitching: dodgers.pitchingScore,  total: ladComposite },
     },
     category_wins,
+    edge_counts,
     comparisons,
     team_stats: { phillies, dodgers },
   };
